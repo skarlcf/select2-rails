@@ -9,3 +9,9 @@ task "update-select2" do
   files.convert
   files.cleanup
 end
+
+desc "Update the translation files"
+task :update_translations do
+  files = SourceFile.new
+  files.fetch_translation_files
+end
