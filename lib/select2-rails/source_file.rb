@@ -5,16 +5,29 @@ require "httpclient"
 class SourceFile < Thor
   include Thor::Actions
 
+  DestinationRoot = "app/assets"
+  GitHub          = 'https://github.com/ivaynberg/select2'
+
+
   desc "fetch source files", "fetch source files from GitHub"
   def fetch
     filtered_tags = fetch_tags
     tag = select("Which tag do you want to fetch?", filtered_tags)
-    self.destination_root = "app/assets"
-    remote = "https://github.com/ivaynberg/select2"
-    get "#{remote}/raw/#{tag}/select2.png", "images/select2.png"
-    get "#{remote}/raw/#{tag}/select2-spinner.gif", "images/select2-spinner.gif"
-    get "#{remote}/raw/#{tag}/select2.css", "stylesheets/select2.css"
-    get "#{remote}/raw/#{tag}/select2.js", "javascripts/select2.js"
+    self.destination_root = DestinationRoot
+
+    get "#{GitHub}/raw/#{tag}/select2.png", "images/select2.png"
+    get "#{GitHub}/raw/#{tag}/select2-spinner.gif", "images/select2-spinner.gif"
+    get "#{GitHub}/raw/#{tag}/select2.css", "stylesheets/select2.css"
+    get "#{GitHub}/raw/#{tag}/select2.js", "javascripts/select2.js"
+  end
+
+  desc "fetch all translation files", "fetch all translation files"
+  def fetch_translation_files
+    self.destination_root = DestinationRoot
+
+    list_translation_files.each do |translation_file|
+      get "#{GitHub}/raw/master/#{translation_file}", "javascripts/#{translation_file}"
+    end
   end
 
   desc "convert css to scss file", "convert css to scss file"
@@ -45,5 +58,12 @@ class SourceFile < Thor
     end
     result = ask(msg).to_i
     elements[result - 1]
+  end
+  def list_translation_files
+    http             = HTTPClient.new
+    response         = JSON.parse(http.get("https://api.github.com/repos/ivaynberg/select2/contents/").body)
+    translation_files = response.select { |e| e['type'] == 'file' && e['name'] =~ /^select2_locale_.*\.js$/ }
+
+    translation_files.map { |e| e['path']  }
   end
 end
